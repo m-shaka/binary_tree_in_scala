@@ -1,34 +1,52 @@
 package tree
 
-abstract class Tree[A <% Ordered[A]] {
-  def contains(n: A): Boolean
-  def insert(n: A): Tree[A]
+sealed trait Tree[+A]
+case object Empty extends Tree[Nothing]
+case class Node[+A](left: Tree[A], value: A, right: Tree[A]) extends Tree[A]
+
+object Tree {
+
+  def contains(tree: Tree[Int], n: Int): Boolean =
+    tree match {
+      case Empty => false
+      case Node(l, v, r) =>
+        if (v == n) true
+        else if (v < n) contains(r, n)
+        else contains(l, n)
+    }
+
+  def insert(tree: Tree[Int], n: Int): Tree[Int] =
+    tree match {
+      case Empty => Node(Empty, n, Empty)
+      case Node(l, v, r) =>
+        if (v == n) tree
+        else if (v < n) Node(l, v, insert(r, n))
+        else Node(insert(l, n), v, r)
+    }
+
+  def delete(tree: Tree[Int], n: Int): Tree[Int] =
+    tree match {
+      case Empty => Empty
+      case Node(Empty, v, r) =>
+        if (v == n) r
+        else if (v < n) delete(r, n)
+        else Empty
+      case Node(l, v, Empty) =>
+        if (v == n) l
+        else if (v < n) Empty
+        else delete(l, n)
+      case Node(l, v, r) =>
+        // leftの最大値を持ってくるぞ
+        if (v == n) Node(delete(l, max(l)), max(l), r)
+        else if (v < n) Node(l, v, delete(r, n))
+        else Node(delete(l, n), v, r)
+    }
+
+  def max[B >: Int](tree: Tree[Int]): B =
+    tree match {
+      case Empty => error("the tree has no content.")
+      case Node(_, v, Empty) => v
+      case Node(_, _, r) => max(r)
+    }
+
 }
-case class Empty[A <% Ordered[A]]() extends Tree[A] {
-  def contains(n: A): Boolean = false
-  def insert(n: A): Tree[A] = Node(Empty[A], n, Empty[A])
-}
-
-case class Node[A <% Ordered[A]](left: Tree[A], value: A, right: Tree[A]) extends Tree[A] {
-  def contains(n: A): Boolean =
-    if (value == n) true
-    else if (value < n) right.contains(n)
-    else left.contains(n)
-
-  def insert(n: A): Tree[A] =
-    if (value == n) this
-    else if (value < n) Node(left, value, right.insert(n))
-    else Node(left.insert(n), value, right)
-
-}
-
-// object Tree {
-//   def contains(tree: Tree[Int], n: Int): Boolean =
-//     tree match {
-//       case Empty => false
-//       case Node(l, v, r) =>
-//         if (n > v) contains(r, n)
-//         else if (n < v) contains(l, n)
-//         else true
-//     }
-// }
